@@ -1,0 +1,38 @@
+services:
+  
+  postgres:
+    ports:
+      - 5432:5432
+    image: postgres:15.2-alpine3.17
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+  rabbitMQ:
+    ports:
+      - 5672:5672
+      - 15672:15672
+    image: rabbitmq:3.11.13-alpine
+    
+  second-service:
+    build:
+      context: ../
+      dockerfile: ./SecondService/Dockerfile
+    environment:
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - MQ_HOST=rabbitMQ
+    depends_on:
+      - rabbitMQ
+      - postgres
+    
+  first-service:
+    ports:
+      - 5003:80
+    build:
+      context: ../
+      dockerfile: ./FirstService/Dockerfile
+    environment:
+      - MQ_HOST=rabbitMQ
+      - ASPNETCORE_URLS=http://[::]:80
+    depends_on:
+      - rabbitMQ
+      - second-service
